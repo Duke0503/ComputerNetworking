@@ -4,6 +4,9 @@ import json
 import copy 
 
 class Server:
+# ======================================================================================================================== #
+# Variable Definitions
+# ======================================================================================================================== #
     IP = socket.gethostbyname(socket.gethostname()) 
     FORMAT = "utf8"
     listFile = []   # [fname1, fname2]
@@ -14,14 +17,23 @@ class Server:
     allThreads = []
     endAllThread = None
 
+# ======================================================================================================================== #
+# Init Server
+# ======================================================================================================================== #
     def __init__(self, port):
         self.port = port
     
+# ======================================================================================================================== #
+# Init Server
+# ======================================================================================================================== #
     def startServer(self):
         binder = Thread(target = self.listenMessage)
         self.allThreads.append(binder)
         binder.start()
     
+# ======================================================================================================================== #
+# Listen Message From Peers
+# ======================================================================================================================== #
     def listenMessage(self):
         try:
             self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -44,6 +56,9 @@ class Server:
                 self.allThreads.append(receiver)
                 receiver.start()
 
+# ======================================================================================================================== #
+# Message
+# ======================================================================================================================== #
     def receiveMessage(self, conn):
         while (self.endAllThread == False):
             try:
@@ -52,26 +67,37 @@ class Server:
                 if (jsonData["action"] == "register"):
                     # jsonData = {"name": , "IP": , "port": , "action": "register", "listFile": [] }
                     self.handleRegister(conn, jsonData)
+
                 elif (jsonData["action"] == "publishFile"):
                     # jsonData = {"name": , "ID": , "action": "publishFile", "fname": }
                     self.handlePublish(jsonData)
+
                 elif (jsonData["action"] == "deletePublishFile"):
                     # jsonData = {"name": , "ID": , "action": "publishFile", "fname": }
                     self.handleDelete(jsonData)
+
                 elif (jsonData["action"] == "requestListFile"):
                     # jsonData = {"name": , "action": , "requestListFile"}
                     print(jsonData["name"] + " request list file.")
                     self.sendListFile(conn)
+
                 elif (jsonData["action"] == "requestListPeer"):
                     # jsonData = {"action": "requestListPeer", "fname": }
                     self.sendListPeer(conn, jsonData["fname"])
+
                 elif (jsonData["action"] == "leaveNetwork"):
-                    print("Receive Signal leaveNetwork")
                     # jsonData = {"ID": , "action": "leaveNetwork"}
                     self.handleLeave(conn, jsonData["ID"])
             except:
                 continue
     
+# ======================================================================================================================== #
+# Server Function
+# ======================================================================================================================== #
+    
+# ======================================================================================================================== #
+# Register For Peer Join Server
+# ======================================================================================================================== #    
     def handleRegister(self, conn, jsonData):
         # Check if nameInput has existed
         for peerData in self.jsonPeerDatas:
@@ -93,7 +119,10 @@ class Server:
         mess = json.dumps({"ID": self.peerID, "action": "responseRegister"})
         conn.send(mess.encode(self.FORMAT))
         self.peerID += 1
-    
+
+# ======================================================================================================================== #
+# Publish File In Server
+# ======================================================================================================================== #    
     def handlePublish(self, jsonData):
         index = 0
         for peerData in self.jsonPeerDatas:
@@ -107,7 +136,10 @@ class Server:
             if (fname == fileName):
                 return
         self.listFile.append(fname)
-    
+
+# ======================================================================================================================== #
+# Delete File In Server
+# ======================================================================================================================== #    
     def handleDelete(self, jsonData):
         index = 0
         peerListFile = None
@@ -122,7 +154,9 @@ class Server:
         if (fname not in dataString):
             self.listFile.remove(fname)
 
-
+# ======================================================================================================================== #
+# List Peer Of A Specific File
+# ======================================================================================================================== #
     def sendListPeer(self, conn, fname):
         listPeer = []
         for peerData in self.jsonPeerDatas:
@@ -133,11 +167,17 @@ class Server:
             sendData = json.dumps({"action": "responseListPeer", "listPeer": listPeer})
             conn.send(sendData.encode(self.FORMAT))
 
+# ======================================================================================================================== #
+# List File In Server
+# ======================================================================================================================== #
     def sendListFile(self, conn):
         #listFile = copy.deepcopy(self.listFile)
         sendData = json.dumps({"action": "responseListFile", "listFile": self.listFile})
         conn.send(sendData.encode(self.FORMAT))
 
+# ======================================================================================================================== #
+# Ping To Peer
+# ======================================================================================================================== #
     def ping(self, hostname):
         peerIP = None
         peerPort = None
@@ -163,6 +203,9 @@ class Server:
         if (jsonData["action"] == "responsePing"):
             print("Reply from [" + jsonData["IP"] + ', ' + str(jsonData["port"]) + "] : OK")
 
+# ======================================================================================================================== #
+# Peer Leave Server
+# ======================================================================================================================== #
     def handleLeave(self, conn, ID):
         index = 0
         peerListFile = None
@@ -179,6 +222,9 @@ class Server:
                 self.listFile.remove(peerFname)
         conn.close()
 
+# ======================================================================================================================== #
+# End Server System
+# ======================================================================================================================== #
     def endSystem(self):
         self.endAllThread = True
         for socket in self.listSocket:

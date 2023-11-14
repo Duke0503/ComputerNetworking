@@ -3,18 +3,12 @@ import socket
 import json
 import os
 import time
-#import tqdm
-#from Crypto.Cipher import AES
 
 
 class Peer:
 # ======================================================================================================================== #
-# Global Variable Definitions
+# Variable Definitions
 # ======================================================================================================================== #
-    # key = b"DoMinhDucKey2003"
-    # nonce = b"DoMinhDucNce2003"
-
-    # cipher = AES.new(key, AES.MODE_EAX, nonce)
 
     IP = socket.gethostbyname(socket.gethostname()) # IP 
     ID = None
@@ -119,7 +113,7 @@ class Peer:
                     #jsonData = {"name": , "action": "requestFile", "fname": }
                     peerName = jsonData["name"]
                     fname = jsonData["fname"]
-                    print(peerName + 'requests' + fname)
+                    print(peerName + " requests " + fname)
                     
                     # Create a thread to send file
                     sender = Thread(target = self.sendFile, args = (conn, fname, peerName))
@@ -318,7 +312,7 @@ class Peer:
         for fName in self.listFile["fname"]:
             if(fName == fname):
                 lName = self.listFile["lname"][index]
-                print("Delete" + fname + '!')
+                print("Delete " + fname + '!')
                 confirm = input(" Yes/No: ")
                 if (confirm == "Yes" or confirm == "Y" or confirm == "yes" or confirm == "y"):
                     self.listFile["lname"].remove(lName)
@@ -334,7 +328,7 @@ class Peer:
                     return
             else:
                 index += 1
-        print(fname + "is not published")
+        print(fname + " is not published")
 
 # ======================================================================================================================== #
 # Publish File
@@ -375,7 +369,7 @@ class Peer:
 
 
 # ======================================================================================================================== #
-# End System
+# End Client System
 # ======================================================================================================================== #
     def endSystem(self):
         if (self.ID != None):
