@@ -108,7 +108,7 @@ class Peer:
 ############################################################################################################################
 
 # ======================================================================================================================== #
-# Listen Peers
+# Listen Peers Request
 # ======================================================================================================================== #
     def listenRequest(self, conn):
         while(self.endAllThread == False):
@@ -133,6 +133,9 @@ class Peer:
             except:
                 continue 
 
+# ======================================================================================================================== #
+# Listen Peers Response
+# ======================================================================================================================== #
     def listenResponse(self):
         while(self.endAllThread == False):
             try:
@@ -142,7 +145,6 @@ class Peer:
                     # jsonData = {"name": , "action": "resFile", "status": , "fname": }
                     if (jsonData["status"] == "enable"):
                         self.receiveFile(jsonData["fname"], jsonData["name"])
-                        #self.receiveFile(jsonData["fname"], jsonData["name"], jsonData["IP"], jsonData["port"])
                     else:
                         print("File not found!")
                     self.connectSocket.close()
@@ -150,6 +152,9 @@ class Peer:
             except:   
                 continue
 
+# ======================================================================================================================== #
+# Send File
+# ======================================================================================================================== #
     def sendFile(self, conn, fname, peerName):
         count = 0
         lname = None
@@ -182,6 +187,9 @@ class Peer:
                                "status": "disable", "fname": fname})
             conn.send(mess.encode(self.FORMAT))
 
+# ======================================================================================================================== #
+# Receive File
+# ======================================================================================================================== #
     def receiveFile(self, fname, peerName):
         self.connectSocket.settimeout(0.7) # Set a timeout on blocking socket operations
         if not os.path.isdir(self.name):
@@ -206,6 +214,9 @@ class Peer:
                 file.close()
                 print("Receiving Successful!")
 
+# ======================================================================================================================== #
+# Fetch File
+# ======================================================================================================================== #
     def fetch(self, fname, hostname):
         if (hostname == self.name):
             print("Invalid Information!")
@@ -222,14 +233,10 @@ class Peer:
             return
         self.connectSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connectSocket.connect((IP, port))
-
-
         self.listSocket.append(self.connectSocket)
         mess = json.dumps({"name": self.name,  "action": "requestFile", "fname": fname})
-        #mess = json.dumps({"name": self.name, "IP": self.IP, "port": self.port, "action": "requestFile", "fname": fname})
         self.connectSocket.send(mess.encode(self.FORMAT))
  
-
 
 
 ############################################################################################################################
