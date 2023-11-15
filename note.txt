@@ -1,7 +1,0 @@
-CLIENT:
-- conver file to binary and send after that convert again
-- delete terminal in client ????
-
-SERVER:
-- try to use IP localhost ?
-- use localhost to be easy control and only need use port to inform to other
