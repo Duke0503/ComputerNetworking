@@ -3,12 +3,20 @@ import socket
 import json
 import os
 import time
+from Crypto.Cipher import AES
 
 
 class Peer:
 # ======================================================================================================================== #
 # Variable Definitions
 # ======================================================================================================================== #
+    
+
+    key = b"DoMinhDucKey2003"
+    nonce = b"DoMinhDucNce2003"
+
+    cipher = AES.new(key, AES.MODE_EAX, nonce)
+
 
     IP = socket.gethostbyname(socket.gethostname()) # IP 
     ID = None
@@ -163,16 +171,18 @@ class Peer:
                                 "status": "enable", "fname": fname})
             conn.send(mess.encode(self.FORMAT))
             time.sleep(0.1)
+            print("Sending " + fname + " to " + peerName + "...")
             with open(path, "rb") as file:
                 while True:
                     try:
                         data = file.read(1024)
                         if (not data):
                             break
-                        print("Sending " + fname + " to " + peerName + "...")
-                        conn.send(data)
+                        encrypted = self.cipher.encrypt(data)
+                        conn.send(encrypted)
                     except:
                         continue
+            conn.send(b"<END>")
             print("Sending Successful!")
             file.close()
         else:
@@ -196,13 +206,28 @@ class Peer:
                 saveName = fname + "(" + str(index) + ")"
 
         path = os.path.join(self.name, saveName)
-        
+        count = 0
         with open(path, 'wb') as file:
             while True:
                 try:
                     print("Receiving " + fname + " from " + peerName + "...")
-                    data = self.connectSocket.recv(1024)
-                    file.write(data)
+                    done = False
+                    file_bytes = b""
+
+                    while not done:
+                        data = self.connectSocket.recv(1024)
+                        count +=1 
+                        if (data == b"<END>"):
+                            file.write(self.cipher.decrypt(file_bytes))
+                            done = True
+                        elif (data[-5:] == b"<END>"):
+                            file_bytes += data[:-5]
+                            file.write(file_bytes)
+                            file.write(self.cipher.decrypt(file_bytes))
+                            done = True
+                        else: 
+                            file_bytes = file_bytes + data
+                        
                 except socket.timeout:
                     break
                 file.close()
@@ -225,6 +250,11 @@ class Peer:
         if(IP == None or port == None):
             print(hostname, " not found!")
             return
+        connect = Thread(target = self.startConnection, args = (IP, port, fname))
+        self.allThreads.append(connect)
+        connect.start()
+
+    def startConnection(self, IP, port, fname):
         self.connectSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connectSocket.connect((IP, port))
         self.listSocket.append(self.connectSocket)
