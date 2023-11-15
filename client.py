@@ -198,15 +198,14 @@ class Peer:
         self.connectSocket.settimeout(0.7) # Set a timeout on blocking socket operations
         if not os.path.isdir(self.name):
             os.mkdir(self.name)
-        index = 0
-        saveName = fname
-        for fName in os.listdir(self.name):
-            if(fName == saveName):
-                index += 1
-                saveName = fname + "(" + str(index) + ")"
-
-        path = os.path.join(self.name, saveName)
-        count = 0
+        # Expands name portion of fname with numeric ' (x)' suffix to return fname that doesn't exist already.    
+        path = os.path.join(self.name, fname)
+        filename, extension = os.path.splitext(path)
+        counter = 1
+        while os.path.exists(path):
+            path = filename + "(" + str(counter) + ")" + extension
+            counter += 1
+ 
         with open(path, 'wb') as file:
             while True:
                 try:
@@ -216,7 +215,7 @@ class Peer:
 
                     while not done:
                         data = self.connectSocket.recv(1024)
-                        count +=1 
+                        
                         if (data == b"<END>"):
                             file.write(self.cipher.decrypt(file_bytes))
                             done = True
