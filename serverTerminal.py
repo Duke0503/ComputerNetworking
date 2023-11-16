@@ -14,7 +14,7 @@ while (server.endAllThread == None):
     
 while (server.endAllThread == False):
     try:
-        command = input("Type your command:\n")
+        command = input("")
     except:
         break
     arr = command.split(' ')
@@ -23,15 +23,26 @@ while (server.endAllThread == False):
             server.ping(arr[1])
         elif (arr[0] == "discover"):
             peerDatas = copy.deepcopy(server.jsonPeerDatas)
-            for i in range(len(peerDatas)):
-                if (peerDatas[i]["name"] == arr[1]):
-                    print(" hostname: " + peerDatas[i]["name"], ', list file:', peerDatas[i]["listFile"])
-                    break
-                elif (i == len(peerDatas) - 1):
-                    print(arr[1], " not found!")
+            if (peerDatas == []):
+                print("[SERVER] '" + arr[1] + "' does not existed in Server!")
+            else:
+                for i in range(len(peerDatas)):
+                    if (peerDatas[i]["name"] == arr[1]):
+                        print("[SERVER] [" + peerDatas[i]["name"] + ":" + peerDatas[i]["IP"] 
+                              + ":" + str(peerDatas[i]["port"]) + "]:", 'list file:', peerDatas[i]["listFile"])
+                        break
+                    elif (i == len(peerDatas) - 1):
+                        print("[SERVER] '" + arr[1] + "' does not existed in Server!")
         else:
-            print("Wrong command!")
+            print("[ERROR] Wrong command!")
+    elif (len(arr) == 1):
+        if (arr[0] == "exit"):
+            print("Shutting down the server..")
+            server.endSystem()
+        else:
+            print("[ERROR]: Wrong command!")
+            
     else:
-        print("Wrong command!")
+        print("[ERROR] Wrong command!")
 
 server.endSystem()

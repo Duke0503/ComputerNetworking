@@ -118,7 +118,6 @@ class Peer:
                     #jsonData = {"name": , "action": "requestFile", "fname": }
                     peerName = jsonData["name"]
                     fname = jsonData["fname"]
-                    print(peerName + " requests " + fname)
                     
                     # Create a thread to send file
                     sender = Thread(target = self.sendFile, args = (conn, fname, peerName))
@@ -126,7 +125,7 @@ class Peer:
                     sender.start()
 
                 if (jsonData["action"] == "ping"):
-                    print("Pinging from Server...")
+                    print("\n[SERVER] Pinging from Server...")
                     mess = json.dumps({"IP": self.IP, "port": self.port, "action": "responsePing"})
                     conn.send(mess.encode(self.FORMAT))
             except:
@@ -141,11 +140,14 @@ class Peer:
                 receiveData = self.connectSocket.recv(1024).decode(self.FORMAT) 
                 jsonData = json.loads(receiveData)
                 if (jsonData["action"] == "responseFile"):
-                    # jsonData = {"name": , "action": "resFile", "status": , "fname": }
+                    # jsonData = {"name": , "IP": , "port": , "action": "resFile", "status": , "fname": }
                     if (jsonData["status"] == "enable"):
-                        self.receiveFile(jsonData["fname"], jsonData["name"])
+                        self.receiveFile(jsonData["fname"], jsonData["name"], jsonData["IP"], jsonData["port"])
                     else:
-                        print("File not found!")
+                        mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "unsuccessful", "fname": jsonData["fname"]})
+                        self.serverConnection.send(mess.encode(self.FORMAT))
+                        print("[CLIENT] '" + jsonData["fname"] + "' does not existed!")
                     self.connectSocket.close()
                     self.connectSocket = None
             except:   
@@ -164,11 +166,11 @@ class Peer:
             count += 1
         path = os.path.join(self.name, lname) # self.name\lname on Windows
         if os.path.isfile(path):
-            mess = json.dumps({"name": self.name, "action": "responseFile",
-                                "status": "enable", "fname": fname})
+            mess = json.dumps({"name": self.name, "IP": self.IP, "port": self.port, 
+                               "action": "responseFile", "status": "enable", "fname": fname})
             conn.send(mess.encode(self.FORMAT))
             time.sleep(0.1)
-            print("Sending " + fname + " to " + peerName + "...")
+            print("\n  Sending " + fname + " to " + peerName + "...")
             with open(path, "rb") as file:
                 while True:
                     try:
@@ -180,10 +182,10 @@ class Peer:
                     except:
                         continue
             conn.send(b"<END>")
-            print("Sending Successful!")
             file.close()
+            print("  Sending Successful!")
         else:
-            print("File not found!")
+            print("File !")
             mess = json.dumps({"name": self.name, "action": "responseFile", 
                                "status": "disable", "fname": fname})
             conn.send(mess.encode(self.FORMAT))
@@ -191,7 +193,7 @@ class Peer:
 # ======================================================================================================================== #
 # Receive File
 # ======================================================================================================================== #
-    def receiveFile(self, fname, peerName):
+    def receiveFile(self, fname, peerName, IP, port):
         self.connectSocket.settimeout(0.7) # Set a timeout on blocking socket operations
         if not os.path.isdir(self.name):
             os.mkdir(self.name)
@@ -202,11 +204,11 @@ class Peer:
         while os.path.exists(path):
             path = filename + "(" + str(counter) + ")" + extension
             counter += 1
- 
+        print("  Receiving " + fname + " from " + peerName + "...")
         with open(path, 'wb') as file:
             while True:
                 try:
-                    print("Receiving " + fname + " from " + peerName + "...")
+                    
                     done = False
                     file_bytes = b""
 
@@ -227,14 +229,22 @@ class Peer:
                 except socket.timeout:
                     break
                 file.close()
-                print("Receiving Successful!")
+                print("  Receiving Successful!")
+                mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "successful", "fname": fname, "connName": peerName, "connIP": IP, "connPort": port})
+                self.serverConnection.send(mess.encode(self.FORMAT))
+
+                
 
 # ======================================================================================================================== #
 # Fetch File
 # ======================================================================================================================== #
     def fetch(self, fname, hostname):
         if (hostname == self.name):
-            print("Invalid Information!")
+            print("[ERROR] Invalid Information!")
+            mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "unsuccessful", "fname": fname})
+            self.serverConnection.send(mess.encode(self.FORMAT))
             return
         IP = None
         port = None
@@ -244,7 +254,10 @@ class Peer:
                 port = peerData["port"]
                 break
         if(IP == None or port == None):
-            print(hostname, " not found!")
+            print("[SERVER] '" +  hostname, "' does not existed in Server!")
+            mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "unsuccessful", "fname": fname})
+            self.serverConnection.send(mess.encode(self.FORMAT))
             return
         connect = Thread(target = self.startConnection, args = (IP, port, fname))
         self.allThreads.append(connect)
@@ -271,20 +284,21 @@ class Peer:
             try:
                 receiveData = self.serverConnection.recv(
                     1024).decode(self.FORMAT) # Response from server
-                # Check for the unique name in the server
-                if (receiveData == "Invalid name!"):
-                    self.endSystem()
-                    print("Error Input: '" + self.name + "' has existed!")
-                    return
-                elif (receiveData == "Invalid address!"):
-                    self.endSystem()
-                    print("Error Input: '" + self.IP + ":" + str(self.port) + "' has existed!")
-                    return
+                
                 
                 jsonData = json.loads(receiveData)
                 # Request to register
                 if (jsonData["action"] == "responseRegister"):
-                    self.ID = jsonData["ID"]
+                    if (jsonData["status"] == "successful"):
+                        self.ID = jsonData["ID"]
+                    elif (jsonData["status"] == "unsuccessfulName"):  # Check for the unique name in the server
+                        print("[SERVER] '" + self.name + "' has existed!")
+                        self.endSystem()
+                        return
+                    elif (jsonData["status"] == "unsuccessfulAddress"): # Check for the unique address in the server
+                        print("[SERVER] '" + self.IP + ":" + str(self.port) + "' has existed!")
+                        self.endSystem()
+                        return
 
                 # Request for list file
                 elif (jsonData["action"] == "responseListFile"):
@@ -306,7 +320,7 @@ class Peer:
 # Request List Files In Server
 # ======================================================================================================================== #
     def requestListFile(self):
-        mess = json.dumps({"name": self.name, "action": "requestListFile"})
+        mess = json.dumps({"name": self.name, "IP": self.IP, "port": self.port, "action": "requestListFile"})
         self.serverConnection.send(mess.encode(self.FORMAT))
 
 # ======================================================================================================================== #
@@ -314,13 +328,13 @@ class Peer:
 # ======================================================================================================================== #
     def showFiles(self):
         # Show upload files
-        print("Public Files: ")
+        print("[SERVER] Public Files: ")
         for i in range(len(self.listFile["lname"])):
             print(" lname: ", self.listFile["lname"][i],
                   " -> ", "fname: ", self.listFile["fname"][i])
             
         # Show private files
-        print("Private Files: ")
+        print("[CLIENT] Private Files: ")
         for lname in os.listdir(self.name):
             private = True
             for i in range(len(self.listFile["lname"])):
@@ -331,32 +345,6 @@ class Peer:
                 print(" lname: ", lname)
 
 # ======================================================================================================================== #
-# Delete A File In Server
-# ======================================================================================================================== #
-    def deletePublishFile(self, fname):
-        index = 0
-        for fName in self.listFile["fname"]:
-            if(fName == fname):
-                lName = self.listFile["lname"][index]
-                print("Delete " + fname + '!')
-                confirm = input(" Yes/No: ")
-                if (confirm == "Yes" or confirm == "Y" or confirm == "yes" or confirm == "y"):
-                    self.listFile["lname"].remove(lName)
-                    self.listFile["fname"].remove(fName)
-                    mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
-                    self.serverConnection.send(mess.encode(self.FORMAT))
-                    print("Delete '" + fname + "' successful!")
-                    return
-                elif (confirm == "No" or confirm == "N" or confirm == "no" or confirm == "n"): 
-                    return 
-                else: 
-                    print("Invalid command!")
-                    return
-            else:
-                index += 1
-        print(fname + " is not published")
-
-# ======================================================================================================================== #
 # Publish File
 # ======================================================================================================================== #
     def publish(self, lname, fname):
@@ -364,11 +352,11 @@ class Peer:
         # Update content in directory file without updating to server
         for name in self.listFile["lname"]:
             if (name == lname):
-                print("File published before!")
+                print("[SERVER] File published before!")
                 return
         for name in self.listFile["fname"]:
             if (name == fname):
-                print("File published before!")
+                print("[SERVER] File published before!")
                 return
         
         # Check if the file is in local repository 
@@ -378,13 +366,42 @@ class Peer:
             else:
                 count += 1
         if (count == len(os.listdir(self.name))):
-            print("File not exits!")
+            print("[CLIENT] File does not exit in your local repository!")
             return
         self.listFile["lname"].append(lname)
         self.listFile["fname"].append(fname)
         mess = json.dumps({"ID": self.ID, "action": "publishFile", "fname": fname})
         self.serverConnection.send(mess.encode(self.FORMAT))
-        print("Publish '" + fname + "' successful!")
+        print("[SERVER] Publish '" + fname + "': SUCCESS")
+
+# ======================================================================================================================== #
+# Delete A File In Server
+# ======================================================================================================================== #
+    def deletePublishFile(self, fname):
+        index = 0
+        mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
+        self.serverConnection.send(mess.encode(self.FORMAT))
+        for fName in self.listFile["fname"]:
+            if(fName == fname):
+                lName = self.listFile["lname"][index]
+                print("[SERVER] Delete " + fname + '!')
+                confirm = input(" Yes/No: ")
+                if (confirm == "Yes" or confirm == "Y" or confirm == "yes" or confirm == "y"):
+                    self.listFile["lname"].remove(lName)
+                    self.listFile["fname"].remove(fName)
+
+                    print("[SERVER] Delete '" + fname + "' : SUCCESS")
+                    return
+                elif (confirm == "No" or confirm == "N" or confirm == "no" or confirm == "n"): 
+                    print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
+                    return 
+                else: 
+                    print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
+                    return
+            else:
+                index += 1
+        print("[SERVER] '" + fname + " does not existed in Server!")
+
 
 # ======================================================================================================================== #
 # Request List Peer Of A Specific File
@@ -392,7 +409,6 @@ class Peer:
     def requestListPeer(self, fname):
         mess = json.dumps({"action": "requestListPeer", "fname": fname})
         self.serverConnection.send(mess.encode(self.FORMAT))
-
 
 # ======================================================================================================================== #
 # End Client System
