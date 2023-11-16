@@ -39,13 +39,13 @@ class Server:
             self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.serverSocket.bind((self.IP, self.port))
         except:
-            print("Fail binding address!")
+            print("[ERROR] Fail binding address!")
             self.endSystem()
             return
         self.endAllThread = False
         self.listSocket.append(self.serverSocket)
         self.serverSocket.listen()
-        print("Server is running...")
+        print("Server is running... \n")
         while (self.endAllThread == False):
             try:
                 conn, addr = self.serverSocket.accept()
@@ -64,12 +64,23 @@ class Server:
             try:
                 receiveData = conn.recv(1024).decode(self.FORMAT)
                 jsonData = json.loads(receiveData)
-                if (jsonData["action"] == "register"):
+
+                if (jsonData["action"] == "fetch"):
+                    print("[DEBUG] Command: fetch")
+                    # jsonData = {"name":, "action": "fetch", "IP": "port":, 
+                    #           "statusRequest": "unsuccessful", "fname":, "connName":, "connIP":, "connPort":}
+                    if (jsonData["statusRequest"] == "unsuccessful"):
+                        print("[CLIENT]: [" + jsonData["name"] + ":" + jsonData["IP"] + ":" 
+                              + str(jsonData["port"]) + "] fetch '" + jsonData["fname"] +"' : UNSUCCESS")
+                    else:
+                        print("[CLIENT]: [" + jsonData["name"] + ":" + jsonData["IP"] + ":" + str(jsonData["port"]) + "] fetch '" + 
+                              jsonData["fname"] + "from [" + jsonData["connName"] + ":" + jsonData["connIP"] + ":" + str(jsonData["connPort"]) +"' : SUCCESS") 
+                elif (jsonData["action"] == "register"):
                     # jsonData = {"name": , "IP": , "port": , "action": "register", "listFile": [] }
                     self.handleRegister(conn, jsonData)
 
                 elif (jsonData["action"] == "publishFile"):
-                    # jsonData = {"name": , "ID": , "action": "publishFile", "fname": }
+                    # jsonData = {"ID": , "action": "publishFile", "fname":}
                     self.handlePublish(jsonData)
 
                 elif (jsonData["action"] == "deletePublishFile"):
@@ -77,8 +88,9 @@ class Server:
                     self.handleDelete(jsonData)
 
                 elif (jsonData["action"] == "requestListFile"):
-                    # jsonData = {"name": , "action": , "requestListFile"}
-                    print(jsonData["name"] + " request list file.")
+                    # jsonData = {"name" : , "IP" : , "port" : , "action": , "requestListFile"}
+                    print("[DEBUG] Command: files")
+                    print("[CLIENT] [" + jsonData["name"] + ":" + jsonData["IP"] + ":" + str(jsonData["port"]) + "]")
                     self.sendListFile(conn)
 
                 elif (jsonData["action"] == "requestListPeer"):
@@ -102,21 +114,20 @@ class Server:
         # Check if nameInput has existed
         for peerData in self.jsonPeerDatas:
             if (peerData["name"] == jsonData["name"]):
-                print("Invalid name input!")
-                mess = "Invalid name!"
+                mess = json.dumps({"action": "responseRegister", "status": "unsuccessfulName"})
                 conn.send(mess.encode(self.FORMAT))
                 return
             # Check if address has existed
             elif (peerData["IP"] == jsonData["IP"] and peerData["port"] == jsonData["port"]):
-                print("Invalid address input!")
-                mess = "Invalid address!"
+                mess = json.dumps({"action": "responseRegister", "status": "unsuccessfulAddress"})
                 conn.send(mess.encode(self.FORMAT))
                 return
         # Valid name and address
-        print(jsonData["name"] + " joined.")
+        print("[SERVER] Incoming client connection from " + "[" + jsonData["name"] + ":" + 
+                                        jsonData["IP"] + ":" + str(jsonData["port"]) + "]")
         jsonData["ID"] = self.peerID
         self.jsonPeerDatas.append(jsonData)
-        mess = json.dumps({"ID": self.peerID, "action": "responseRegister"})
+        mess = json.dumps({"ID": self.peerID, "action": "responseRegister", "status": "successful"})
         conn.send(mess.encode(self.FORMAT))
         self.peerID += 1
 
@@ -124,13 +135,16 @@ class Server:
 # Publish File In Server
 # ======================================================================================================================== #    
     def handlePublish(self, jsonData):
+        # jsonData = {"ID": , "action": "publishFile", "fname": }
         index = 0
         for peerData in self.jsonPeerDatas:
             if (peerData["ID"] == jsonData["ID"]):
                 break
             index += 1
         fname = jsonData["fname"]
-        print(self.jsonPeerDatas[index]["name"] + " published " + fname)
+        print("[DEBUG] Command: publish")
+        print("[CLIENT] [" + self.jsonPeerDatas[index]["name"] + ":" + self.jsonPeerDatas[index]["IP"] 
+              + ":" + str(self.jsonPeerDatas[index]["port"]) + "] : " + fname)
         self.jsonPeerDatas[index]["listFile"].append(fname)
         for fileName in self.listFile:
             if (fname == fileName):
@@ -142,13 +156,14 @@ class Server:
 # ======================================================================================================================== #    
     def handleDelete(self, jsonData):
         index = 0
-        peerListFile = None
         for peerData in self.jsonPeerDatas:
             if(peerData["ID"] == jsonData["ID"]):
                 break
             index += 1
         fname = jsonData["fname"]
-        print(self.jsonPeerDatas[index]["name"] + " deleted " + fname)
+        print("[DEBUG] Command: delete")
+        print("[CLIENT] [" + self.jsonPeerDatas[index]["name"] + ":" + 
+                self.jsonPeerDatas[index]["IP"] + ":" + str(self.jsonPeerDatas[index]["port"]) + "]: " + fname)
         self.jsonPeerDatas[index]["listFile"].remove(fname)
         dataString = json.dumps(self.jsonPeerDatas)
         if (fname not in dataString):
@@ -181,27 +196,28 @@ class Server:
     def ping(self, hostname):
         peerIP = None
         peerPort = None
+        print("[DEBUG] Command: ping")
         for peerData in self.jsonPeerDatas:
             if (peerData["name"] == hostname):
                 peerIP = peerData["IP"]
                 peerPort = peerData["port"]
                 break
         if (peerIP == None or peerPort == None):
-            print(hostname, " not found!")
+            print("[SERVER] '" + hostname + "' does not existed in Server!")
             return
         try: 
             pingSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             pingSocket.connect((peerIP, peerPort))
         except:
-            print("Fail connection!")
+            print("[ERROR] Fail connection!")
             return
-        print("Pinging " + hostname + ' [' + peerIP + ', ' + str(peerPort) + '] ...')
+        print("[SERVER] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: Pinging...")
         mess = json.dumps({"action": "ping"})
         pingSocket.send(mess.encode(self.FORMAT))
         receiveData = pingSocket.recv(1024).decode(self.FORMAT)
         jsonData = json.loads(receiveData)
         if (jsonData["action"] == "responsePing"):
-            print("Reply from [" + jsonData["IP"] + ', ' + str(jsonData["port"]) + "] : OK")
+            print("[CLIENT] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: OK")
 
 # ======================================================================================================================== #
 # Peer Leave Server
@@ -214,7 +230,8 @@ class Server:
                 peerListFile = copy.deepcopy(peerData["listFile"])
                 break
             index += 1
-        print(self.jsonPeerDatas[index]["name"] + " leave.")
+        print("[SERVER] Closing connection for client [" +  self.jsonPeerDatas[index]["name"] + ":"
+              + self.jsonPeerDatas[index]["IP"] + ":" + str(self.jsonPeerDatas[index]["port"]) + "]")
         self.jsonPeerDatas.pop(index)
         dataString = json.dumps(self.jsonPeerDatas)
         for peerFname in peerListFile:
