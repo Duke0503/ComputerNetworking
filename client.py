@@ -10,13 +10,10 @@ class Peer:
 # ======================================================================================================================== #
 # Variable Definitions
 # ======================================================================================================================== #
-    
-
     key = b"DoMinhDucKey2003"
     nonce = b"DoMinhDucNce2003"
 
     cipher = AES.new(key, AES.MODE_EAX, nonce)
-
 
     IP = socket.gethostbyname(socket.gethostname()) # IP 
     ID = None
@@ -411,4 +408,3 @@ class Peer:
             del socket
         for thread in self.allThreads:
             del thread     
-
