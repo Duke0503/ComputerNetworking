@@ -33,6 +33,25 @@ while (server.endAllThread == False):
                         break
                     elif (i == len(peerDatas) - 1):
                         print("[SERVER] '" + arr[1] + "' does not existed in Server!")
+        elif (arr[0] == "list"):    
+            peerDatas = copy.deepcopy(server.jsonPeerDatas)
+            if (peerDatas == []):
+                print("[SERVER]: Empty!")
+            else:
+                if (arr[1] == "peer"):
+                    print("[SERVER] List Of Peer In Server:")
+                    for i in range(len(peerDatas)):
+                        print(' ',"[ID:" + str(peerDatas[i]["ID"]) + "] [" + peerDatas[i]["name"] + ":" + peerDatas[i]["IP"] 
+                              + ":" + str(peerDatas[i]["port"]) + "]", 'list file:', peerDatas[i]["listFile"])
+                elif (arr[1] == "file"):
+                    if (server.listFile == ""):
+                        print("[SERVER]: Empty!")
+                    else:
+                        print("[SERVER] List Of File In Server:")
+                        for fname in server.listFile:
+                            print(' ',fname)
+                else: 
+                    print("[ERROR] Wrong command!")
         else:
             print("[ERROR] Wrong command!")
     elif (len(arr) == 1):
