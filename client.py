@@ -3,6 +3,7 @@ import socket
 import json
 import os
 import time
+import sys
 from Crypto.Cipher import AES
 
 
@@ -51,7 +52,8 @@ class Peer:
                 self.serverIP, self.serverPort)) # Connect to server
         except:
             self.endSystem()
-            print("Fail connection !")
+            self = None
+            print("Fail connection!")
             return
         self.endAllThread = False
         self.listSocket.append(self.serverConnection)
@@ -95,7 +97,7 @@ class Peer:
 # Run Peer
 # ======================================================================================================================== #
     def startPeer(self):
-        register = Thread(target = self.setUp)
+        register = Thread(target = self.setUp())
         if not os.path.isdir(self.name):
             os.mkdir(self.name)
         self.allThreads.append(register)
@@ -418,6 +420,7 @@ class Peer:
             mess = json.dumps({"ID": self.ID, "action": "leaveNetwork"})
             self.serverConnection.send(mess.encode(self.FORMAT))
             self.ID = None
+            del self
         self.endAllThread = True
         for socket in self.listSocket:
             socket.close()
