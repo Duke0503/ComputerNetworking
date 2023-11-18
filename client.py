@@ -1,5 +1,6 @@
 from threading import Thread
 import socket
+from tkinter import messagebox
 import json
 import os
 import time
@@ -369,7 +370,7 @@ class Peer:
             else:
                 count += 1
         if (count == len(os.listdir(self.name))):
-            print("[CLIENT] File does not exit in your local repository!")
+            print("[CLIENT] File does not exist in your local repository!")
             return
         self.listFile["lname"].append(lname)
         self.listFile["fname"].append(fname)
@@ -397,6 +398,27 @@ class Peer:
                     return
                 elif (confirm == "No" or confirm == "N" or confirm == "no" or confirm == "n"): 
                     print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
+                    return 
+                else: 
+                    print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
+                    return
+            else:
+                index += 1
+        print("[SERVER] '" + fname + " does not existed in Server!")
+        
+    def deletePublishFileUsingGUI(self, fname):
+        index = 0
+        mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
+        self.serverConnection.send(mess.encode(self.FORMAT))
+        for fName in self.listFile["fname"]:
+            if(fName == fname):
+                lName = self.listFile["lname"][index]
+                print("[SERVER] Delete " + fname + '!')
+                if (messagebox.askyesno("Delete", "Are you sure?")):
+                    self.listFile["lname"].remove(lName)
+                    self.listFile["fname"].remove(fName)
+
+                    print("[SERVER] Delete '" + fname + "' : SUCCESS")
                     return 
                 else: 
                     print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
