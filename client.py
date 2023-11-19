@@ -249,6 +249,7 @@ class Peer:
             mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
                                "statusRequest": "unsuccessful", "fname": fname})
             self.serverConnection.send(mess.encode(self.FORMAT))
+            messagebox.showerror("Fetch Unsuccessful", "[ERROR] Invalid Information!")
             return
         IP = None
         port = None
@@ -262,10 +263,12 @@ class Peer:
             mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
                                "statusRequest": "unsuccessful", "fname": fname})
             self.serverConnection.send(mess.encode(self.FORMAT))
+            messagebox.showerror("Error", "[SERVER] '" +  hostname, "' does not existed in Server!")
             return
         connect = Thread(target = self.startConnection, args = (IP, port, fname))
         self.allThreads.append(connect)
         connect.start()
+        messagebox.showinfo("Info", "Fetch Successful")
 
     def startConnection(self, IP, port, fname):
         self.connectSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -286,10 +289,7 @@ class Peer:
     def listenServer(self):
         while(self.endAllThread == False):
             try:
-                receiveData = self.serverConnection.recv(
-                    1024).decode(self.FORMAT) # Response from server
-                
-                
+                receiveData = self.serverConnection.recv(1024).decode(self.FORMAT) # Response from server
                 jsonData = json.loads(receiveData)
                 # Request to register
                 if (jsonData["action"] == "responseRegister"):
@@ -357,10 +357,12 @@ class Peer:
         for name in self.listFile["lname"]:
             if (name == lname):
                 print("[SERVER] File published before!")
+                messagebox.showerror("Error", "[SERVER] File published before!")
                 return
         for name in self.listFile["fname"]:
             if (name == fname):
                 print("[SERVER] File published before!")
+                messagebox.showerror("Error", "[SERVER] File published before!")
                 return
         
         # Check if the file is in local repository 
@@ -371,26 +373,28 @@ class Peer:
                 count += 1
         if (count == len(os.listdir(self.name))):
             print("[CLIENT] File does not exist in your local repository!")
+            messagebox.showerror("Error", "[CLIENT] File does not exist in your local repository!")
             return
         self.listFile["lname"].append(lname)
         self.listFile["fname"].append(fname)
         mess = json.dumps({"ID": self.ID, "action": "publishFile", "fname": fname})
         self.serverConnection.send(mess.encode(self.FORMAT))
         print("[SERVER] Publish '" + fname + "': SUCCESS")
+        messagebox.showinfo("Complete", "[SERVER] Publish '" + fname + "': SUCCESS")
 
 # ======================================================================================================================== #
 # Delete A File In Server
 # ======================================================================================================================== #
     def deletePublishFile(self, fname):
         index = 0
-        mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
-        self.serverConnection.send(mess.encode(self.FORMAT))
         for fName in self.listFile["fname"]:
             if(fName == fname):
                 lName = self.listFile["lname"][index]
                 print("[SERVER] Delete " + fname + '!')
                 confirm = input(" Yes/No: ")
                 if (confirm == "Yes" or confirm == "Y" or confirm == "yes" or confirm == "y"):
+                    mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
+                    self.serverConnection.send(mess.encode(self.FORMAT))
                     self.listFile["lname"].remove(lName)
                     self.listFile["fname"].remove(fName)
 
@@ -408,23 +412,25 @@ class Peer:
         
     def deletePublishFileUsingGUI(self, fname):
         index = 0
-        mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
-        self.serverConnection.send(mess.encode(self.FORMAT))
         for fName in self.listFile["fname"]:
             if(fName == fname):
                 lName = self.listFile["lname"][index]
                 print("[SERVER] Delete " + fname + '!')
                 if (messagebox.askyesno("Delete", "Are you sure?")):
+                    mess = json.dumps({"ID": self.ID, "action": "deletePublishFile", "fname": fname})
+                    self.serverConnection.send(mess.encode(self.FORMAT))
                     self.listFile["lname"].remove(lName)
                     self.listFile["fname"].remove(fName)
-
                     print("[SERVER] Delete '" + fname + "' : SUCCESS")
+                    messagebox.showinfo("Complete", "[SERVER] Delete '" + fname + "' : SUCCESS")
                     return 
                 else: 
                     print("[SERVER] Delete '" + fname + "' : UNSUCCESS")
+                    messagebox.showerror("Error", "[SERVER] Delete '" + fname + "' : UNSUCCESS")
                     return
             else:
                 index += 1
+        messagebox.showerror("Error", "[SERVER] '" + fname + " does not existed in Server!")
         print("[SERVER] '" + fname + " does not existed in Server!")
 
 

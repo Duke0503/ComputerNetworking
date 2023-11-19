@@ -1,69 +1,74 @@
-import tkinter as tk
-import tkinter.ttk as ttk 
+from tkinter import *
 from tkinter import filedialog
 from tkinter.messagebox import showerror, showwarning, showinfo, askyesno
 from client import Peer
-from server import Server
 import time
-import sys
 import time
+import os
 from pathlib import Path
 
 peer = None
 btnFrames = []
 peerBtns = []
 
+def updateListLocalFile():
+  global peer
+  name = peer.name
+  listFile = peer.listFile
+  index = 0
+  localFileListBox.delete(0, "end")
+  localFileListBox.configure(state = "normal")
+  for lname in os.listdir(name):
+    private = True
+    for i in range(len(listFile["lname"])):
+      if(lname == listFile["lname"][i]):
+        private = False
+        break
+    if private == True:
+      localFileListBox.insert(index, " " + lname)
+      index = index + 1
+
 def RunPeer():
-    global peer
-    serverIP = serverIPEntry.get()
-    serverPort = serverPortEntry.get()
-    peerName = peerNameEntry.get()
-    peerPort = peerPortEntry.get()
-    if ((serverIP != "") and (serverPort != "") and (peerName != "") and (peerPort != "")):
-        peer = Peer(serverIP, int(serverPort), peerName, int(peerPort))
-        peer.startPeer()
-        while (peer.endAllThread == None):
-            time.sleep(0.01)
+  global peer
+  serverIP = serverIPEntry.get()
+  serverPort = serverPortEntry.get()
+  peerName = peerNameEntry.get()
+  peerPort = peerPortEntry.get()
+  if (serverIP != "" and serverPort != "" and peerName != "" and peerPort != ""):
+    peer = Peer(serverIP, int(serverPort), peerName, int(peerPort))
+    print("Peer is running...")
+    peer.startPeer()
+    while (peer.endAllThread == None):
+        time.sleep(0.01)
+    if (peer.endAllThread == True):
+        peer = None
+        return
+    while (peer.ID == None):
+        time.sleep(0.01)
         if (peer.endAllThread == True):
-            peer = None
             return
-        while (peer.ID == None):
-            time.sleep(0.01)
-            if (peer.endAllThread == True):
-               return
-        l7 = tk.Label(root, text = peer.IP, font = ("Helvetica", 11))
-        l7.place(x = 180, y = 102)
-        serverIPEntry.configure(state = "readonly")
-        serverPortEntry.configure(state = "readonly")
-        peerNameEntry.configure(state = "readonly")
-        peerPortEntry.configure(state = "readonly")
-        runPeerBtn.configure(state = "disable", cursor = "arrow")
-    else:
-        showwarning("Warning", "Missing value!")
+    Label(peerInfo, text = peer.IP, font = ("Helvetica", 11)).grid(row=3, column=1, sticky=W)
+    serverIPEntry.configure(state = "readonly")
+    serverPortEntry.configure(state = "readonly")
+    peerNameEntry.configure(state = "readonly")
+    peerPortEntry.configure(state = "readonly")
+    runPeerBtn.configure(state = "disable", cursor = "arrow")
+    updateListLocalFile()
+  else:
+    showwarning("Warning", "Missing Value")
 
 def updateListFile():
-  global peer
-  if (peer == None):
-    return
   peer.requestListFile()
   time.sleep(0.1)
   listFile = peer.listFileServer
   fileListbox.delete(0, "end")
   if (len(listFile) > 0):
-      fileListbox.configure(state = "normal") 
-      for i in range(len(listFile)):
-          fileListbox.insert(i, " " + listFile[i])
-  peer.listFileServer = []  
-  
-def no_selection(index):
-  try:
-    str = peerListBox.get(peerListBox.curselection())
-  except:
-    return
-  peerName = str.replace(" ", "")
-  if peerName == peer.name:
-    peerListBox.itemconfig(0, fg='gray')
-    peerListBox.select_clear(0)
+    fileListbox.configure(state = "normal") 
+    for i in range(len(listFile)):
+      fileListbox.insert(i, " " + listFile[i])
+  else:
+    peerListBox.delete(0, "end")  
+  peer.listFileServer = []
 
 def showListPeer(var):
   global peer
@@ -80,24 +85,24 @@ def showListPeer(var):
     peerListBox.configure(state = "normal")
     for i in range(len(listPeer)):
       peerListBox.insert(i, " " + listPeer[i]["name"])
-      if peer.ID == listPeer[i]["ID"]:
-        peerListBox.itemconfig(i, fg='gray')
+      if peer.name == listPeer[i]["name"]:
+        peerListBox.itemconfig(i, fg="gray")
   peer.listPeerServer = []
 
 def deleteFile():
   global peer
   try:
-      str = fileListbox.get(fileListbox.curselection())
+    str = fileListbox.get(fileListbox.curselection())
   except:
-      return
+    return
   fname = str.replace(" ", "")
   peer.deletePublishFileUsingGUI(fname)
   time.sleep(0.1)
   updateListFile()
-  peerListBox.delete(0, "end")
-  
+  var = None
+  showListPeer(var)
 
-def OpenFile():
+def openFile():
   path = filedialog.askopenfilename()
   path = Path(path).name
   lnameEntry.configure(state="normal")  
@@ -119,126 +124,148 @@ def publishFile():
     lnameEntry.delete(0, "end")
     lnameEntry.insert(0, "")
     lnameEntry.configure(state="readonly")
-    fnameEntry.delete(0, tk.END)
+    fnameEntry.delete(0, "end")
     fnameEntry.insert(0, "")
-    updateListFile()
   else:
     showwarning("Warning", "Missing value!")
+  updateListFile()
+  peerListBox.delete(0, "end")
     
 def fetchFile():
   try:
     str1 = fileListbox.get(fileListbox.curselection())
-    str2 = peerListBox.get(peerListBox.curselection())
+    str2 = peerListBox.get(peerListBox.curselection())  
   except:
     return
   fname = str1.replace(" ", "")
   hostname = str2.replace(" ", "")
+  peer.requestListPeer(fname)
+  time.sleep(0.1)
   peer.fetch(fname, hostname)
-  showinfo("Complete", "Fetch Successful")
+  time.sleep(0.1)
+  peer.listPeerServer = []
         
-def on_closing():
-    if askyesno("Quit", "Are you sure"):
-        global peer
-        if ((peer != None) and (peer.endAllThread == False)):
-            peer.endSystem()
-            print("Closing connection to server...")
-        root.destroy()
+def onClosing():
+  if askyesno("Quit", "Are you sure"):
+    global peer
+    if ((peer != None) and (peer.endAllThread == False)):
+      peer.endSystem()
+      print("Closing connection to server...")
+    root.destroy()
 
-
-root = tk.Tk()
+# Create Screen
+root = Tk()
 root.title("Client GUI")
-root.geometry("720x720")
+root.geometry("500x800")
 root.resizable(0, 0)
 
-appTitle = tk.Label(root, text = "FILE SHARING APP", font=("Arial", 23, "bold"), width = 60, pady = 5, bg ="#ff904f", fg = "white", anchor="center")
-appTitle.place(x = 0, y = 0)
+# Create Client Info Frame
+infoFrame = Frame(root)
+Label(infoFrame, text="Client Info", font = ("Helvetica", 18)).grid(row=0, sticky=W+E)
+infoFrame.grid(row=0, padx=10, pady=10)
 
-label1 = tk.Label(root, text = "Connect", font=("Helvetica", 11, "bold"), width = 8, height = 8, bg ="#3399ff", fg = "white", anchor="center")
-label2 = tk.Label(root, text = "Download", font=("Helvetica", 11, "bold"), width = 8, height = 40, bg ="#3399ff", fg = "white", anchor="center")
-label3 = tk.Label(root, text = "Publish", font=("Helvetica", 11, "bold"), width = 8, height = 9, bg ="#3399ff", fg = "white", anchor="center")
-label1.place(x = 0, y = 40)
-label2.place(x = 0, y = 140)
-label3.place(x = 0, y = 610)
+# Server Info
+serverInfo = Frame(infoFrame)
+serverInfo.grid(row=1, column=0, padx=10, pady=10, sticky=N+W)
+Label(serverInfo, text="Server:", font = ("Helvetica", 14)).grid(row=0, column=0, sticky=W, padx=10, pady= 10)
+Label(serverInfo, text="Port:").grid(row=1, column=0, sticky=W)
+Label(serverInfo, text="IP:").grid(row=2, column=0, sticky=W)
+serverPortEntry = Entry(serverInfo, font = ("Helvetica", 11), width = 7)
+serverPortEntry.grid(row=1, column=1, sticky=W)
+serverIPEntry = Entry(serverInfo, font = ("Helvetica", 11), width = 14)
+serverIPEntry.grid(row=2, column=1, sticky=W)
 
-line1 = tk.Frame(root, highlightbackground = "#ddd", highlightthickness = 5, width = 720)
-line2 = tk.Frame(root, highlightbackground = "#ddd", highlightthickness = 5, width = 720)
-line1.place(x = 0, y = 145)
-line2.place(x = 0, y = 610)
+# Peer Info
+peerInfo = Frame(infoFrame)
+peerInfo.grid(row=1, column=1, padx=10, pady=10, sticky=N)
+Label(peerInfo, text="Peer:", font = ("Helvetica", 14)).grid(row=0, column=0, sticky=W, padx=10, pady= 10)
+Label(peerInfo, text="Port:").grid(row=1, column=0, sticky=W)
+Label(peerInfo, text="Name:").grid(row=2, column=0, sticky=W)
+Label(peerInfo, text="IP:").grid(row=3, column=0, sticky=W)
+peerPortEntry = Entry(peerInfo, font = ("Helvetica", 11), width = 7)
+peerPortEntry.grid(row=1, column=1, sticky=W)
+peerNameEntry = Entry(peerInfo, font = ("Helvetica", 11), width = 14)
+peerNameEntry.grid(row=2, column=1, sticky=W)
+runPeerBtn = Button(infoFrame, text="Connect", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = RunPeer)
+runPeerBtn.grid(row=1, column=2)
 
-#
-l1 = tk.Label(root, text = "Sever:", font = ("Helvetica", 11))
-l2 = tk.Label(root, text = "Port", font = ("Helvetica", 11))
-l3 = tk.Label(root, text = "IP", font = ("Helvetica", 11))
-l1.place(x = 200, y = 65)
-l2.place(x = 290, y = 65)
-l3.place(x = 430, y = 65)
-serverPortEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 7)
-serverIPEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 14)
-serverPortEntry.place(x = 350, y = 65)
-serverIPEntry.place(x = 475, y = 65)
+Frame(root, highlightbackground = "#252525", highlightthickness = 5, width = 500).grid(row=1)
 
-l4 = tk.Label(root, text = "Peer:", font = ("Helvetica", 11))
-l5 = tk.Label(root, text = "IP", font = ("Helvetica", 11))
-l6 = tk.Label(root, text = "Port", font = ("Helvetica", 11))
-l7 = tk.Label(root, text = "Name", font = ("Helvetica", 11))
-l4.place(x = 100, y = 102)
-l5.place(x = 150, y = 102)
-l6.place(x = 290, y = 102)
-l7.place(x = 430, y = 102)
-peerPortEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 7)
-peerNameEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 14)
-peerPortEntry.place(x = 350, y = 102)
-peerNameEntry.place(x = 475, y = 102)
-runPeerBtn = tk.Button(root, text="Connect", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = RunPeer)
-runPeerBtn.place(x = 625, y = 82)
+# Create List Frame
+listFrame = Frame(root)
+listFrame.grid(row=2, sticky=W+E)
+Label(listFrame, text="List", font = ("Helvetica", 18)).grid(row=0, padx=10, pady=10, sticky=W)
 
-l8 = tk.Label(root, text = "List file", font = ("Helvetica", 11))
-l8.place(x = 90, y = 170)
-showListFile = tk.Button(root, text="Refresh", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = updateListFile)
-showListFile.place(x = 90, y = 340)
-deleteFile = tk.Button(root, text="Delete", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = deleteFile)
-deleteFile.place(x = 200, y = 340)
-
-fileArea = tk.Frame(root, background="white")
-fileArea.place(x = 90, y = 195)
-scroll = ttk.Scrollbar(fileArea)
-fileListbox = tk.Listbox(fileArea, yscrollcommand = scroll.set, font = ("Helvetica", 14), width = 25, height = 7, 
+# File List Frame
+listFileFrame = Frame(listFrame)
+listFileFrame.grid(row=1, column=0, padx=10, pady=10, sticky=W)
+Label(listFileFrame, text = "List file", font = ("Helvetica", 14)).grid(row=0)
+fileArea = Frame(listFileFrame, background="white")
+fileArea.grid(row=1, padx=10, pady= 10)
+scroll = Scrollbar(fileArea)
+fileListbox = Listbox(fileArea, yscrollcommand = scroll.set, font = ("Helvetica", 11), width = 25, height = 7, 
                      bg = "white", selectbackground = "#ff904f", selectforeground = "white", activestyle = "none", 
-                     highlightthickness = 0, borderwidth = 0, selectmode = "single", cursor = "hand2", state = "disabled")
+                     highlightthickness = 0, borderwidth = 0, selectmode = "single", cursor = "hand2", state = "disabled", exportselection=0)
 fileListbox.bind("<<ListboxSelect>>", showListPeer)
 scroll.pack(side = "right", fill = "y")
 fileListbox.pack(side = "left", padx = 5, pady = 5)
+showListFile = Button(listFileFrame, text="Refresh", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = updateListFile)
+showListFile.grid(row=2, column=0, sticky=W, padx=10, pady= 10)
+deleteFile = Button(listFileFrame, text="Delete", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = deleteFile)
+deleteFile.grid(row=2, column=0, sticky=E, padx=10, pady= 10)
 
-l9 = tk.Label(root, text = "Users has the file", font = ("Helvetica", 11))
-l9.place(x = 450, y = 166)
-
-peerArea = tk.Frame(root, background="white")
-peerArea.place(x = 450, y = 195)
-scroll = ttk.Scrollbar(peerArea)
-peerListBox = tk.Listbox(peerArea, yscrollcommand = scroll.set, font = ("Helvetica", 14), width = 25, height = 7, 
+# Peer List Frame
+listPeerFrame = Frame(listFrame)
+listPeerFrame.grid(row=1, column=1, padx=10, pady=10, sticky=S)
+Label(listPeerFrame, text = "Users has the file", font = ("Helvetica", 14)).grid(row=0)
+peerArea = Frame(listPeerFrame, background="white")
+peerArea.grid(row=1, padx=10, pady= 10)
+scroll = Scrollbar(peerArea)
+peerListBox = Listbox(peerArea, yscrollcommand = scroll.set, font = ("Helvetica", 11), width = 25, height = 7, 
                      bg = "white", selectbackground = "#ff904f", selectforeground = "white", activestyle = "none", 
-                     highlightthickness = 0, borderwidth = 0, selectmode = "single", cursor = "hand2", state = "disabled")
-peerListBox.bind("<<ListboxSelect>>", no_selection)
+                     highlightthickness = 0, borderwidth = 0, selectmode = "single", cursor = "hand2", state = "disabled", exportselection=0)
 scroll.pack(side = "right", fill = "y")
 peerListBox.pack(side = "left", padx = 5, pady = 5)
-fetchBtn = tk.Button(root, text="Fetch", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = fetchFile)
-fetchBtn.place(x = 450, y = 340)
+fetchBtn = Button(listPeerFrame, text="Fetch", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = fetchFile)
+fetchBtn.grid(row=2, padx=10, pady= 10)
 
-#
-l11 = tk.Label(root, text = "lname", font = ("Helvetica", 11))
-l11.place(x = 90, y = 630)
-lnameEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 20)
-lnameEntry.place(x = 145, y = 630)
-browseFileBtn = tk.Button(root, text = "Browse", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = OpenFile)
-browseFileBtn.place(x = 350, y = 630)
+# Local File Frame
+localFileFrame = Frame(listFrame)
+localFileFrame.grid(row=2, column=0, padx=10, pady=10)
+Label(localFileFrame, text = "Local File", font = ("Helvetica", 14)).grid(row=0)
+localFileArea = Frame(localFileFrame, background="white")
+localFileArea.grid(row=1, padx=10, pady= 10)
+scroll = Scrollbar(localFileArea)
+localFileListBox = Listbox(localFileArea, yscrollcommand = scroll.set, font = ("Helvetica", 11), width = 25, height = 7, 
+                     bg = "white", selectbackground = "#ff904f", selectforeground = "white", activestyle = "none", 
+                     highlightthickness = 0, borderwidth = 0, selectmode = "single", cursor = "hand2", state = "disabled", exportselection=0)
+scroll.pack(side = "right", fill = "y")
+localFileListBox.pack(side = "left", padx = 5, pady = 5)
+showListLocalFile = Button(localFileFrame, text="Refresh", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = updateListLocalFile)
+showListLocalFile.grid(row=2, sticky=W, padx=10, pady= 10)
 
-l12 = tk.Label(root, text = "fname", font = ("Helvetica", 11))
-l12.place(x = 90, y = 685)
-fnameEntry = ttk.Entry(root, font = ("Helvetica", 11), width = 20)
-fnameEntry.place(x = 145, y = 685)
+Frame(root, highlightbackground = "#252525", highlightthickness = 5, width = 500).grid(row=3)
 
-publishBtn = tk.Button(root, text="Publish", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = publishFile)
-publishBtn.place(x = 350, y = 685)
+# Create Publish Frame
+publishFrame = Frame(root)
+publishFrame.grid(row=4, padx=10, pady= 10, sticky=W+E)
+Label(publishFrame, text="Publish", font=("Helvetica", 18)).grid(row=0, padx=10, pady=10, sticky=W)
 
-root.protocol("WM_DELETE_WINDOW", on_closing)
-tk.mainloop()
+# Input lname
+Label(publishFrame, text = "lname", font = ("Helvetica", 14)).grid(row=1, column=0, padx=10, pady= 10, sticky=W)
+lnameEntry = Entry(publishFrame, font = ("Helvetica", 11), width = 20, state="readonly")
+lnameEntry.grid(row=1, column=1, sticky=W, padx=10, pady= 10)
+
+# Input fname
+Label(publishFrame, text = "fname", font = ("Helvetica", 14)).grid(row=2, column=0, sticky=W, padx=10, pady= 10)
+fnameEntry = Entry(publishFrame, font = ("Helvetica", 11), width = 20)
+fnameEntry.grid(row=2, column=1, sticky=W, padx=10, pady= 10)
+
+# Button
+browseFileBtn = Button(publishFrame, text = "Browse", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = openFile)
+browseFileBtn.grid(row=1, column=2, sticky=W, padx=10, pady= 10)
+publishBtn = Button(publishFrame, text="Publish", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = publishFile)
+publishBtn.grid(row=2, column=2, sticky=W, padx=10, pady= 10)
+
+root.protocol("WM_DELETE_WINDOW", onClosing)
+root.mainloop()

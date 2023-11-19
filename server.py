@@ -165,9 +165,10 @@ class Server:
         print("[CLIENT] [" + self.jsonPeerDatas[index]["name"] + ":" + 
                 self.jsonPeerDatas[index]["IP"] + ":" + str(self.jsonPeerDatas[index]["port"]) + "]: " + fname)
         self.jsonPeerDatas[index]["listFile"].remove(fname)
-        dataString = json.dumps(self.jsonPeerDatas)
-        if (fname not in dataString):
-            self.listFile.remove(fname)
+        for data in self.jsonPeerDatas:
+            if fname in data["listFile"]:
+                return
+        self.listFile.remove(fname)
 
 # ======================================================================================================================== #
 # List Peer Of A Specific File
