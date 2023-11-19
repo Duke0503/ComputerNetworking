@@ -3,7 +3,6 @@ from tkinter import filedialog
 from tkinter.messagebox import showerror, showwarning, showinfo, askyesno
 from client import Peer
 import time
-import time
 import os
 from pathlib import Path
 
@@ -129,6 +128,7 @@ def publishFile():
   else:
     showwarning("Warning", "Missing value!")
   updateListFile()
+  updateListLocalFile()
   peerListBox.delete(0, "end")
     
 def fetchFile():
