@@ -75,7 +75,7 @@ def onClosing():
 
 root = Tk()
 root.title("Server GUI")
-root.geometry("500x500")
+# root.geometry("500x500")
 root.resizable(0, 0)
 
 # Create Client Info Frame
