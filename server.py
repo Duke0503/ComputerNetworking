@@ -1,4 +1,5 @@
 from threading import Thread 
+from tkinter.messagebox import showerror, showwarning, showinfo, askyesno
 import socket
 import json
 import copy 
@@ -165,9 +166,10 @@ class Server:
         print("[CLIENT] [" + self.jsonPeerDatas[index]["name"] + ":" + 
                 self.jsonPeerDatas[index]["IP"] + ":" + str(self.jsonPeerDatas[index]["port"]) + "]: " + fname)
         self.jsonPeerDatas[index]["listFile"].remove(fname)
-        dataString = json.dumps(self.jsonPeerDatas)
-        if (fname not in dataString):
-            self.listFile.remove(fname)
+        for data in self.jsonPeerDatas:
+            if fname in data["listFile"]:
+                return
+        self.listFile.remove(fname)
 
 # ======================================================================================================================== #
 # List Peer Of A Specific File
@@ -204,20 +206,24 @@ class Server:
                 break
         if (peerIP == None or peerPort == None):
             print("[SERVER] '" + hostname + "' does not existed in Server!")
+            showerror("Error", "[SERVER] '" + hostname + "' does not existed in Server!")
             return
         try: 
             pingSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             pingSocket.connect((peerIP, peerPort))
         except:
             print("[ERROR] Fail connection!")
+            showerror("Error", "[ERROR] Fail connection!")
             return
         print("[SERVER] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: Pinging...")
+        showinfo("Info", "[SERVER] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: Pinging...")
         mess = json.dumps({"action": "ping"})
         pingSocket.send(mess.encode(self.FORMAT))
         receiveData = pingSocket.recv(1024).decode(self.FORMAT)
         jsonData = json.loads(receiveData)
         if (jsonData["action"] == "responsePing"):
             print("[CLIENT] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: OK")
+            showinfo("Success", "[CLIENT] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: OK")
 
 # ======================================================================================================================== #
 # Peer Leave Server
