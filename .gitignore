@@ -12,3 +12,5 @@ nghgkim
 build
 client.spec
 server.spec
+clientLauncher.spec
+serverLauncher.spec
