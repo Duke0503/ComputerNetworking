@@ -194,7 +194,7 @@ def connectSuccess():
   # File List Frame
   listFileFrame = Frame(listFrame)
   listFileFrame.grid(row=1, column=0, padx=10, pady=10, sticky=W)
-  Label(listFileFrame, text = "List file", font = ("Helvetica", 14)).grid(row=0)
+  Label(listFileFrame, text = "List File", font = ("Helvetica", 14)).grid(row=0)
   fileArea = Frame(listFileFrame, background="white")
   fileArea.grid(row=1, padx=10, pady= 10)
   scroll = Scrollbar(fileArea)
@@ -212,7 +212,7 @@ def connectSuccess():
   # Peer List Frame
   listPeerFrame = Frame(listFrame)
   listPeerFrame.grid(row=1, column=1, padx=10, pady=10, sticky=S)
-  Label(listPeerFrame, text = "Users has the file", font = ("Helvetica", 14)).grid(row=0)
+  Label(listPeerFrame, text = "Users Has The File", font = ("Helvetica", 14)).grid(row=0)
   peerArea = Frame(listPeerFrame, background="white")
   peerArea.grid(row=1, padx=10, pady= 10)
   scroll = Scrollbar(peerArea)
@@ -241,7 +241,7 @@ def connectSuccess():
   
   publishFrame = Frame(listFrame)
   publishFrame.grid(row=2, column=1, padx=10, pady= 10, sticky=W+E)
-  Label(publishFrame, text="fname", font=("Helvetica", 18)).grid(row=0, padx=10, pady=10, sticky=W)
+  Label(publishFrame, text="Fname", font=("Helvetica", 18)).grid(row=0, padx=10, pady=10, sticky=W)
   fnameEntry = Entry(publishFrame, font = ("Helvetica", 11), width = 20)
   fnameEntry.grid(row=1, column=0, sticky=W, padx=10, pady= 10)
   publishBtn = Button(publishFrame, text="Publish", border = 0, borderwidth = 0, relief = "sunken", cursor = "hand2", command = publishFile)

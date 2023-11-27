@@ -14,14 +14,13 @@ class Peer:
     
 
     key = b"DoMinhDucKey2003"
-    nonce = b"DoMinhDucNce2003"
+    nonce = b"DoMinhDucNce2003" 
+    FORMAT = "utf-8"
 
     cipher = AES.new(key, AES.MODE_EAX, nonce)
 
-
     IP = socket.gethostbyname(socket.gethostname()) # IP 
     ID = None
-    FORMAT = "utf-8"
     peerSocket = None
     serverConnection = None
     connectSocket = None 
@@ -201,7 +200,7 @@ class Peer:
         self.connectSocket.settimeout(0.7) # Set a timeout on blocking socket operations
         if not os.path.isdir(self.name):
             os.mkdir(self.name)
-        # Expands name portion of fname with numeric ' (x)' suffix to return fname that doesn't exist already.    
+        # Expands name portion of fname with numeric '(x)' suffix to return fname that exist already.    
         path = os.path.join(self.name, fname)
         filename, extension = os.path.splitext(path)
         counter = 1
