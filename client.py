@@ -248,6 +248,30 @@ class Peer:
             mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
                                "statusRequest": "unsuccessful", "fname": fname})
             self.serverConnection.send(mess.encode(self.FORMAT))
+            return
+        IP = None
+        port = None
+        for peerData in self.listPeerServer:
+            if (hostname == peerData["name"]):
+                IP = peerData["IP"]
+                port = peerData["port"]
+                break
+        if(IP == None or port == None):
+            print("[SERVER] '" +  hostname, "' does not existed in Server!")
+            mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "unsuccessful", "fname": fname})
+            self.serverConnection.send(mess.encode(self.FORMAT))
+            return
+        connect = Thread(target = self.startConnection, args = (IP, port, fname))
+        self.allThreads.append(connect)
+        connect.start()
+        
+    def fetchUsingGUI(self, fname, hostname):
+        if (hostname == self.name):
+            print("[ERROR] Invalid Information!")
+            mess = json.dumps({"name": self.name, "action": "fetch", "IP": self.IP, "port": self.port, 
+                               "statusRequest": "unsuccessful", "fname": fname})
+            self.serverConnection.send(mess.encode(self.FORMAT))
             messagebox.showerror("Fetch Unsuccessful", "[ERROR] Invalid Information!")
             return
         IP = None
@@ -351,6 +375,33 @@ class Peer:
 # Publish File
 # ======================================================================================================================== #
     def publish(self, lname, fname):
+        count = 0
+        # Update content in directory file without updating to server
+        for name in self.listFile["lname"]:
+            if (name == lname):
+                print("[SERVER] File published before!")
+                return
+        for name in self.listFile["fname"]:
+            if (name == fname):
+                print("[SERVER] File published before!")
+                return
+        
+        # Check if the file is in local repository 
+        for lName in os.listdir(self.name):
+            if (lname == lName):
+                break
+            else:
+                count += 1
+        if (count == len(os.listdir(self.name))):
+            print("[CLIENT] File does not exist in your local repository!")
+            return
+        self.listFile["lname"].append(lname)
+        self.listFile["fname"].append(fname)
+        mess = json.dumps({"ID": self.ID, "action": "publishFile", "fname": fname})
+        self.serverConnection.send(mess.encode(self.FORMAT))
+        print("[SERVER] Publish '" + fname + "': SUCCESS")
+        
+    def publishUsingGUI(self, lname, fname):
         count = 0
         # Update content in directory file without updating to server
         for name in self.listFile["lname"]:

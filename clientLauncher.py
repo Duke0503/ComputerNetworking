@@ -118,7 +118,7 @@ def connectSuccess():
     lname = str.replace(" ", "")
     fname = fnameEntry.get()
     if (lname != "" and fname != ""):
-      peer.publish(lname, fname)
+      peer.publishUsingGUI(lname, fname)
       fnameEntry.delete(0, "end")
       fnameEntry.insert(0, "")
     else:
@@ -182,7 +182,7 @@ def connectSuccess():
     hostname = str2.replace(" ", "")
     peer.requestListPeer(fname)
     time.sleep(0.1)
-    peer.fetch(fname, hostname)
+    peer.fetchUsingGUI(fname, hostname)
     time.sleep(0.1)
     peer.listPeerServer = []
   
