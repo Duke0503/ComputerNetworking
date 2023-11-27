@@ -4,23 +4,17 @@ from tkinter import messagebox
 import json
 import os
 import time
-from Crypto.Cipher import AES
+
 
 
 class Peer:
 # ======================================================================================================================== #
 # Variable Definitions
 # ======================================================================================================================== #
-    
-
-    key = b"DoMinhDucKey2003"
-    nonce = b"DoMinhDucNce2003" 
-    FORMAT = "utf-8"
-
-    cipher = AES.new(key, AES.MODE_EAX, nonce)
 
     IP = socket.gethostbyname(socket.gethostname()) # IP 
     ID = None
+    FORMAT = "utf-8"
     peerSocket = None
     serverConnection = None
     connectSocket = None 
@@ -180,8 +174,7 @@ class Peer:
                         data = file.read(1024)
                         if (not data):
                             break
-                        encrypted = self.cipher.encrypt(data)
-                        conn.send(encrypted)
+                        conn.send(data)
                     except:
                         continue
             conn.send(b"<END>")
@@ -219,12 +212,11 @@ class Peer:
                         data = self.connectSocket.recv(1024)
                         
                         if (data == b"<END>"):
-                            file.write(self.cipher.decrypt(file_bytes))
+                            file.write(file_bytes)
                             done = True
                         elif (data[-5:] == b"<END>"):
                             file_bytes += data[:-5]
                             file.write(file_bytes)
-                            file.write(self.cipher.decrypt(file_bytes))
                             done = True
                         else: 
                             file_bytes = file_bytes + data
