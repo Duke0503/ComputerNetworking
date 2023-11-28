@@ -63,7 +63,7 @@ def ping():
   except:
     return
   peerName = str.replace(" ", "")
-  server.ping(peerName)
+  server.pingUsingGUI(peerName)
 
 def onClosing():
   if askyesno("Quit", "Are you sure"):

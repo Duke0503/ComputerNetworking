@@ -207,6 +207,32 @@ class Server:
                 break
         if (peerIP == None or peerPort == None):
             print("[SERVER] '" + hostname + "' does not existed in Server!")
+            return
+        try: 
+            pingSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            pingSocket.connect((peerIP, peerPort))
+        except:
+            print("[ERROR] Fail connection!")
+            return
+        print("[SERVER] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: Pinging...")
+        mess = json.dumps({"action": "ping"})
+        pingSocket.send(mess.encode(self.FORMAT))
+        receiveData = pingSocket.recv(1024).decode(self.FORMAT)
+        jsonData = json.loads(receiveData)
+        if (jsonData["action"] == "responsePing"):
+            print("[CLIENT] [" + hostname + ":" + peerIP + ":" + str(peerPort) + "]: OK")\
+    
+    def pingUsingGUI(self, hostname):
+        peerIP = None
+        peerPort = None
+        print("[DEBUG] Command: ping")
+        for peerData in self.jsonPeerDatas:
+            if (peerData["name"] == hostname):
+                peerIP = peerData["IP"]
+                peerPort = peerData["port"]
+                break
+        if (peerIP == None or peerPort == None):
+            print("[SERVER] '" + hostname + "' does not existed in Server!")
             showerror("Error", "[SERVER] '" + hostname + "' does not existed in Server!")
             return
         try: 
