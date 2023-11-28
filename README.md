@@ -23,6 +23,7 @@ Peer port: <peerPort>
 publish <lname> <fname>
 files server
 files local
+files <fname>
 delete <fname>
 fetch <fname>
 exit
