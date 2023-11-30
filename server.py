@@ -9,7 +9,6 @@ class Server:
 # Variable Definitions
 # ======================================================================================================================== #
     FORMAT = "utf8"
-
     IP = socket.gethostbyname(socket.gethostname()) 
     listFile = []   # [fname1, fname2]
     jsonPeerDatas = []  # [{"ID": , "name": , "IP", "port": , "action": , "listFile": [fname, ]}, ]
